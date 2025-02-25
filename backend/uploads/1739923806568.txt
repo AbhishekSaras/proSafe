@@ -1,0 +1,648 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Route, Routes, NavLink, Navigate, useNavigate } from "react-router-dom"
+import "bootstrap/dist/css/bootstrap.min.css"
+import "bootstrap-icons/font/bootstrap-icons.css"
+import "./App.css"
+import Dashboard from "./components/admin_portal/components/Dashboard"
+import Students from "./components/admin_portal/components/Students"
+import Teachers from "./components/admin_portal/components/Teachers"
+import Parents from "./components/admin_portal/components/Parents"
+import Classes from "./components/admin_portal/components/Classes"
+import Events from "./components/admin_portal/components/Events"
+import Library from "./components/admin_portal/components/Library"
+import BusTracking from "./components/admin_portal/components/BusTracking"
+import Fees from "./components/admin_portal/components/Fees"
+import BusSchedule from "./components/admin_portal/components/BusSchedule"
+import NotificationModal from "./components/admin_portal/components/NotificationModal"
+import Exams from "./components/admin_portal/components/Exams"
+import Swal from "sweetalert2"
+import axios from "axios"
+import { Card, Button, Modal, Form } from "react-bootstrap"
+
+const Admin = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [showProfileCard, setShowProfileCard] = useState(false)
+  const [adminDetails, setAdminDetails] = useState({})
+  const [notifications, setNotifications] = useState([])
+  const [leaveRequests, setLeaveRequests] = useState([])
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [formData, setFormData] = useState({})
+  const [photo, setPhoto] = useState(null)
+  const [photoUrl, setPhotoUrl] = useState("/images/teacher1.jfif")
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
+
+  const toggleSidebar = () => {
+    if (window.innerWidth < 992) {
+      setIsMobileSidebarOpen(!isMobileSidebarOpen)
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed)
+    }
+  }
+
+  const toggleDropdown = () => {
+    setDropdownOpen(!dropdownOpen)
+  }
+
+  const toggleNotificationDropdown = () => {
+    setNotificationDropdownOpen(!notificationDropdownOpen)
+  }
+
+  const handleLogout = () => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, logout!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire("Logged out!", "You have been logged out successfully.", "success")
+        setIsLoggedIn(false)
+        localStorage.removeItem("userData")
+        navigate("/login")
+      }
+    })
+  }
+
+  const fetchAdminDetails = async (adminId) => {
+    try {
+      const response = await axios.get(`http://localhost:5000/admin2/${adminId}`)
+      const adminData = response.data
+      setAdminDetails(adminData)
+      setFormData(adminData)
+
+      if (adminData.photo) {
+        setPhotoUrl(`http://localhost:5000/${adminData.photo}`)
+      } else {
+        setPhotoUrl("/images/teacher1.jfif")
+      }
+    } catch (error) {
+      console.error("Error fetching admin details:", error)
+      setPhotoUrl("/images/teacher1.jfif")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("userData")
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser)
+      fetchAdminDetails(parsedUser.id) // Fetch data when component mounts
+    }
+  }, [localStorage]) // Added localStorage to dependencies
+
+  const fetchLeaveRequests = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/leave3")
+      console.log("Leave requests data:", response.data) // Log the response data
+      setLeaveRequests(response.data)
+      const newNotifications = response.data
+        .filter((request) => request.status === "Pending")
+        .map((request) => ({
+          id: request.teacher_id,
+          message: `Leave request from ${request.name} is pending.`,
+          read: false,
+          leaveRequest: request,
+        }))
+      console.log("New notifications:", newNotifications) // Log the new notifications
+      setNotifications(newNotifications)
+    } catch (error) {
+      console.error("Error fetching leave requests:", error)
+      // Optionally, show an error message to the user
+      Swal.fire("Error", "Failed to fetch leave requests. Please try again later.", "error")
+    }
+  }
+
+  useEffect(() => {
+    fetchLeaveRequests() // Fetch leave requests on component mount
+    const interval = setInterval(fetchLeaveRequests, 60000) // Fetch every minute
+    return () => clearInterval(interval)
+  }, []) // Added empty dependency array to run only once on mount
+
+  const handleSaveProfile = async (updatedProfile) => {
+    try {
+      const response = await axios.put(`http://localhost:5000/admin2/${adminDetails.admin_id}`, updatedProfile, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      const updatedAdmin = response.data
+      setAdminDetails(updatedAdmin) // Update admin details
+      setFormData(updatedAdmin) // Update form data
+
+      if (updatedAdmin.photo) {
+        setPhotoUrl(`http://localhost:5000/${updatedAdmin.photo}`) // Update photo URL
+      }
+      Swal.fire("Success", "Profile updated successfully!", "success")
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      Swal.fire("Error", "Failed to update profile!", "error")
+    }
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const handlePhotoChange = (e) => {
+    setPhoto(e.target.files[0])
+  }
+
+  const handleSubmit = async () => {
+    try {
+      const updatedProfile = new FormData()
+      updatedProfile.append("name", formData.name)
+      updatedProfile.append("role", formData.role)
+      updatedProfile.append("email", formData.email)
+      updatedProfile.append("contact", formData.contact)
+      updatedProfile.append("password", formData.password)
+
+      if (photo) {
+        updatedProfile.append("photo", photo)
+      }
+
+      await handleSaveProfile(updatedProfile)
+      setShowEditModal(false)
+
+      if (photo) {
+        const imageUrl = URL.createObjectURL(photo)
+        setPhotoUrl(imageUrl) // Update the image URL immediately
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: "Success",
+        text: "Profile updated successfully!",
+      })
+    } catch (error) {
+      console.error("Error during form submission:", error)
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to update profile!",
+      })
+    }
+  }
+
+  const openNotificationModal = () => {
+    setShowNotificationModal(true)
+  }
+
+  const closeNotificationModal = () => {
+    setShowNotificationModal(false)
+  }
+
+  const markAsRead = (id) => {
+    setNotifications(
+      notifications.map((notification) => (notification.id === id ? { ...notification, read: true } : notification)),
+    )
+  }
+
+  const handleLeaveRequestAction = async (id, action) => {
+    try {
+      const endpoint = action === "Approved" ? `/leave3/${id}/approve` : `/leave3/${id}/reject`
+      await axios.put(`http://localhost:5000${endpoint}`)
+
+      // Update the leave requests state
+      setLeaveRequests((prevRequests) =>
+        prevRequests.map((request) => (request.teacher_id === id ? { ...request, status: action } : request)),
+      )
+
+      // Update notifications
+      setNotifications((prev) => prev.filter((notification) => notification.id !== id))
+
+      Swal.fire("Success", `Leave request has been ${action.toLowerCase()}d!`, "success")
+    } catch (error) {
+      console.error("Error updating leave request:", error)
+      Swal.fire("Error", "Failed to update leave request!", "error")
+    }
+  }
+
+  const handleEditProfile = () => {
+    setFormData(adminDetails)
+    setShowEditModal(true)
+  }
+
+  useEffect(() => {
+    if (sidebarCollapsed) {
+      const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      const tooltipList = tooltipTriggerList.map((tooltipTriggerEl) => new window.bootstrap.Tooltip(tooltipTriggerEl))
+
+      return () => {
+        tooltipList.forEach((tooltip) => tooltip.dispose())
+      }
+    }
+  }, [sidebarCollapsed])
+
+  return (
+    <div className="admin-app-container">
+      {isLoggedIn ? (
+        <>
+          <nav className="admin-navbar navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+            <div className="container-fluid d-flex flex-now justify-content-between align-items-center">
+              <div className="d-flex">
+                <a className="navbar-brand" href="#">
+                  <img src="/school_logo.jpg" alt="School Logo" width="40" />
+                  <span
+                    className="d-none d-lg-inline ms-2"
+                    style={{
+                      color: "rgb(75, 72, 172)",
+                      fontSize: "16px",
+                      fontWeight: "bold",
+                      margin: "20px 0",
+                      fontFamily: "'Arial'",
+                    }}
+                  >
+                    SANTHINIKETHAN
+                  </span>
+                </a>
+                <button
+                  className="btn-light d-none d-lg-block"
+                  onClick={toggleSidebar}
+                  style={{ marginLeft: "40px", backgroundColor: "white", border: "none" }}
+                >
+                  <i className="bi bi-list"></i>
+                </button>
+              </div>
+
+              <div className="d-flex align-items-center">
+                <button
+                  className="btn-light me-3 position-relative"
+                  style={{ border: "none" }}
+                  onClick={toggleNotificationDropdown}
+                >
+                  <i className="bi bi-bell"></i>
+                  {notifications.filter((notification) => !notification.read).length > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                      {notifications.filter((notification) => !notification.read).length}
+                    </span>
+                  )}
+                </button>
+
+                <div className="dropdown" onClick={toggleDropdown}>
+                  {loading ? (
+                    <div className="spinner-border spinner-border-sm" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={photoUrl || "/placeholder.svg"}
+                      alt="Admin Profile"
+                      className="rounded-circle"
+                      width="40"
+                      height="40"
+                      style={{ cursor: "pointer" }}
+                    />
+                  )}
+                  {dropdownOpen && (
+                    <div className="dropdown-menu show">
+                      <div className="dropdown-item">
+                        <strong>{adminDetails.name}</strong>
+                      </div>
+                      <div className="dropdown-item">{adminDetails.email}</div>
+                      <div className="dropdown-divider"></div>
+                      <button className="dropdown-item" onClick={() => setShowProfileCard(true)}>
+                        View Profile
+                      </button>
+                      <button className="dropdown-item bi bi-power" onClick={handleLogout}>
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button className="btn-light d-lg-none" onClick={toggleSidebar} style={{ marginLeft: "10px" }}>
+                  <i className="bi bi-list"></i>
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          <div className={`admin-sidebar ${isMobileSidebarOpen ? "mobile-open" : sidebarCollapsed ? "collapsed" : ""}`}>
+            <ul className="list-unstyled">
+              <li>
+                <NavLink
+                  to="/dashboard"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Dashboard" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-grid"></i>
+                  <span className="admin-sidebar-text"> Dashboard</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/students"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Students" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-people"></i>
+                  <span className="admin-sidebar-text"> Students</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/teachers"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Teachers" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-person"></i>
+                  <span className="admin-sidebar-text"> Teachers</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/parents"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Parents" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-person-heart"></i>
+                  <span className="admin-sidebar-text"> Parents</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/classes"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Classes" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-book"></i>
+                  <span className="admin-sidebar-text"> Classes</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/exams"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Exams" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-file-earmark-text"></i>
+                  <span className="admin-sidebar-text"> Exams</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/fees"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Fees" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-cash"></i>
+                  <span className="admin-sidebar-text"> Fees</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/events"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Events" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-calendar"></i>
+                  <span className="admin-sidebar-text"> Events</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/library"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Library" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-book"></i>
+                  <span className="admin-sidebar-text"> Library</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/bus-tracking"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Bus Tracking" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-bus-front-fill"></i>
+                  <span className="admin-sidebar-text"> Bus Tracking</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/dashboard/bus-schedule"
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                  data-bs-toggle={sidebarCollapsed ? "tooltip" : undefined}
+                  data-bs-placement="right"
+                  title={sidebarCollapsed ? "Bus Schedule" : undefined}
+                  data-bs-custom-class="custom-tooltip"
+                >
+                  <i className="bi bi-calendar-week"></i>
+                  <span className="admin-sidebar-text"> Bus Schedule</span>
+                </NavLink>
+              </li>
+            </ul>
+          </div>
+
+          <div className={`admin-content ${sidebarCollapsed ? "expanded" : ""}`}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/teachers" element={<Teachers />} />
+              <Route path="/parents" element={<Parents />} />
+              <Route path="/classes" element={<Classes />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/bus-tracking" element={<BusTracking />} />
+              <Route path="/fees" element={<Fees />} />
+              <Route path="/bus-schedule" element={<BusSchedule />} />
+              <Route path="/exams" element={<Exams />} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </div>
+
+          {/* Profile Card Modal */}
+          {showProfileCard && (
+            <div
+              style={{ position: "absolute", top: "60px", left: "50%", transform: "translateX(-50%)", zIndex: 1050 }}
+            >
+              <Card style={{ width: "18rem", position: "relative" }}>
+                <Button
+                  variant="close"
+                  style={{ position: "absolute", top: "10px", right: "10px" }}
+                  onClick={() => setShowProfileCard(false)}
+                />
+                <Card.Body>
+                  <Card.Title>{adminDetails.name}</Card.Title>
+                  <Card.Subtitle className="mb-2 text-muted">{adminDetails.role}</Card.Subtitle>
+                  <Card.Text>
+                    <strong>Email:</strong> {adminDetails.email}
+                    <br />
+                    <strong>Contact:</strong> {adminDetails.contact}
+                    <br />
+                    <strong>Password:</strong> {adminDetails.password}
+                  </Card.Text>
+                  <div className="mb-3">
+                    {loading ? (
+                      <div className="spinner-border spinner-border-sm" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={photoUrl || "/placeholder.svg"}
+                        alt="Admin Profile"
+                        className="img-fluid rounded-circle"
+                        style={{ width: "100px", height: "100px" }}
+                      />
+                    )}
+                  </div>
+                  <Button variant="primary" onClick={handleEditProfile}>
+                    Edit Profile
+                  </Button>
+                </Card.Body>
+              </Card>
+            </div>
+          )}
+
+          {/* Edit Profile Modal */}
+          <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Edit Profile</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <Form>
+                <Form.Group controlId="formName">
+                  <Form.Label>Name</Form.Label>
+                  <Form.Control type="text" name="name" value={formData.name || ""} onChange={handleChange} />
+                </Form.Group>
+                <Form.Group controlId="formRole">
+                  <Form.Label>Role</Form.Label>
+                  <Form.Control type="text" name="role" value={formData.role || ""} onChange={handleChange} />
+                </Form.Group>
+                <Form.Group controlId="formPassword">
+                  <Form.Label>Password</Form.Label>
+                  <Form.Control
+                    type="password"
+                    name="password"
+                    value={formData.password || ""}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+                <Form.Group controlId="formEmail">
+                  <Form.Label>Email</Form.Label>
+                  <Form.Control type="email" name="email" value={formData.email || ""} onChange={handleChange} />
+                </Form.Group>
+                <Form.Group controlId="formContact">
+                  <Form.Label>Contact</Form.Label>
+                  <Form.Control type="text" name="contact" value={formData.contact || ""} onChange={handleChange} />
+                </Form.Group>
+                <Form.Group controlId="formPhoto">
+                  <Form.Label>Profile Photo</Form.Label>
+                  <Form.Control type="file" name="photo" accept="image/*" onChange={handlePhotoChange} />
+                </Form.Group>
+              </Form>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+                Close
+              </Button>
+              <Button variant="primary" onClick={handleSubmit}>
+                Save Changes
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
+          {/* Notification Dropdown */}
+          {notificationDropdownOpen && (
+            <div
+              className="dropdown-menu show"
+              style={{ border: "none", position: "fixed", top: "56px", right: "20px", zIndex: 1050 }}
+            >
+              <div className="dropdown-item">
+                <strong>Notifications</strong>
+              </div>
+              <div className="dropdown-divider"></div>
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div key={notification.id} className="dropdown-item d-flex align-items-center">
+                    <i
+                      className={
+                        notification.read ? "bi bi-check-circle text-muted me-2" : "bi bi-bell-fill text-warning me-2"
+                      }
+                    ></i>
+                    <div className={notification.read ? "text-muted" : ""}>{notification.message}</div>
+                    <button
+                      onClick={() => handleLeaveRequestAction(notification.leaveRequest.teacher_id, "Approved")}
+                      className="btn btn-success btn-sm ms-2"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleLeaveRequestAction(notification.leaveRequest.teacher_id, "Rejected")}
+                      className="btn btn-danger btn-sm ms-2"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="dropdown-item">No new notifications</div>
+              )}
+              <div className="dropdown-divider"></div>
+              <div className="dropdown-item text-center">
+                <button className="btn btn-link" onClick={openNotificationModal}>
+                  View all Leave Requests
+                </button>
+              </div>
+            </div>
+          )}
+
+          <NotificationModal
+            show={showNotificationModal}
+            handleClose={closeNotificationModal}
+            notifications={notifications}
+            markAsRead={markAsRead}
+          />
+        </>
+      ) : (
+        <Routes></Routes>
+      )}
+    </div>
+  )
+}
+
+export default Admin
+

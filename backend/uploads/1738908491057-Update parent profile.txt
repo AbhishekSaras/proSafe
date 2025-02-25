@@ -1,0 +1,691 @@
+// Update parent profile
+app.put('/api/parent/profile', async (req, res, next) => {
+    const {
+        parent_id,
+        full_name,
+        contact,
+        email,
+        relationship,
+        password,
+        child_name,
+        child_class,
+        child_section,
+        address,
+        role,
+        student_id,
+
+    } = req.body;
+
+    console.log("Received Update Request Body:", req.body); // Crucial logging
+
+    // More detailed validation and logging
+
+    if (!full_name) {
+        console.error("Error: full_name is missing.");
+        return res.status(400).json({ message: "full_name is required." });
+    }
+    if (!contact) {
+        console.error("Error: phone is missing.");
+        return res.status(400).json({ message: "contact is required." });
+    }
+    if (!email) {
+        console.error("Error: email is missing.");
+        return res.status(400).json({ message: "email is required." });
+    }
+    if (!relationship) {
+        console.error("Error: relationship is missing.");
+        return res.status(400).json({ message: "relationship is required." });
+    }
+    if (!password) {
+        console.error("Error: password is missing.");
+        return res.status(400).json({ message: "password is required." });
+    }
+    if (!child_name) {
+        console.error("Error: child_name is missing.");
+        return res.status(400).json({ message: "child_name is required." });
+    }
+    if (!child_class) {
+        console.error("Error: child_class is missing.");
+        return res.status(400).json({ message: "child_class is required." });
+    }
+    if (!child_section) {
+        console.error("Error: child_section is missing.");
+        return res.status(400).json({ message: "child_section is required." });
+    }
+    if (!address) {
+        console.error("Error: address is missing.");
+        return res.status(400).json({ message: "address is required." });
+    }
+    if (!role) {
+        console.error("Error: role is missing.");
+        return res.status(400).json({ message: "role is required." });
+    }
+    if (!student_id) {
+        console.error("Error: student_id is missing.");
+        return res.status(400).json({ message: "student_id is required." });
+    }
+    // Check for empty strings
+    if (
+
+
+        !full_name.trim() ||
+        !contact.trim() ||
+        !email.trim() ||
+        !relationship.trim() ||
+        !password.trim() ||
+        !child_name.trim() ||
+        !child_class.trim() ||
+        !child_section.trim() ||
+        !address.trim() ||
+        !role.trim() ||
+        !student_id.trim()
+    ) {
+        console.error("Error: One or more required fields are empty strings.");
+        return res.status(400).json({ message: "All fields are required and must not be empty." });
+    }
+    try {
+        //  Removed bcrypt hashing
+        const query = `
+            UPDATE parent_register
+            SET full_name = $1, contact = $2, email = $3, relationship = $4,
+            password = $5, child_name = $6, child_class = $7, child_section = $8,
+            address = $9, role = $10, student_id = $11
+            WHERE parent_id = $12
+        `;
+        await db.query(query,
+            [full_name, contact, email, relationship, password, child_name, child_class, child_section, address, role, student_id, parent_id]
+        );
+
+        res.status(200).json({ message: 'Parent profile updated successfully!' });
+    } catch (error) {
+        console.error('Error updating parent profile:', error);
+        res.status(500).json({ message: 'Error updating parent profile' });
+        next(error);
+    }
+});
+
+// Get parent profile by id
+app.get('/api/parent/profileById/:id', async (req, res, next) => {
+    const { id } = req.params;
+
+    if (!id) {
+        return res.status(400).json({ message: "ID is required" });
+    }
+
+    try {
+        const result = await db.query(
+            'SELECT parent_id, full_name, contact, email, relationship, password, child_name, child_class, child_section, address, role, student_id, Photo FROM parent_register WHERE parent_id = $1',
+            [id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Parent not found" });
+        }
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error("Error fetching parent profile:", error);
+        res.status(500).json({ message: "Error fetching parent profile" });
+        next(error);
+    }
+});
+
+
+
+
+
+
+
+
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+
+const ParentProfileModal = ({ isOpen, onClose, onProfileUpdated }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isProfileUpdateFail, setProfileUpdateFail] = useState(false);
+    const [isProfileUpdated, setIsProfileUpdated] = useState(false);
+    const [showPopup, setShowPopup] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const [userId, setUserId] = useState(() => {
+        const storedData = localStorage.getItem("userData");
+        return storedData ? JSON.parse(storedData).id : "";
+    });
+
+    const [parentDetails, setParentDetails] = useState({
+        parent_id: userId || "",
+        full_name: "",
+        role: "",
+        password: "",
+        email: "",
+        contact: "",
+        relationship: "",
+        child_name: "",
+        child_class: "",
+        child_section: "",
+        address: "",
+        student_id: "",
+    });
+    const [originalDetails, setOriginalDetails] = useState(null);
+
+    const fetchParentDetails = useCallback(async () => {
+        if (!isOpen || !userId) {
+            console.error("Invalid state for fetching user details:", { isOpen, userId });
+            setIsLoading(false);
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            console.log("Fetching profile data for userId:", userId);
+            const response = await axios.get(`http://localhost:5000/api/parent/profileById/${userId}`);  // Corrected template literal
+
+            console.log("Response status:", response.status);
+            console.log("Response data:", response.data);
+
+            if (response.status === 200 && response.data) {
+                setParentDetails(response.data);
+                setOriginalDetails(response.data);
+            } else {
+                console.warn("No data found or error status:", response.status);
+
+                setParentDetails({
+                    parent_id: userId || "",
+                    full_name: "",
+                    role: "",
+                    password: "",
+                    email: "",
+                    contact: "",
+                    relationship: "",
+                    child_name: "",
+                    child_class: "",
+                    child_section: "",
+                    address: "",
+                    student_id: "",
+                });
+                setOriginalDetails(null);
+            }
+
+            setIsEditing(false);
+            setIsProfileUpdated(false);
+            setProfileUpdateFail(false);
+        } catch (error) {
+            console.error("Failed to fetch user details:", error);
+            setProfileUpdateFail(true);
+            setTimeout(() => {
+                setProfileUpdateFail(false);
+            }, 3000);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [isOpen, userId]);
+
+    useEffect(() => {
+        if (userId) {
+            fetchParentDetails();
+        }
+
+    }, [isOpen, userId, fetchParentDetails]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setParentDetails((prevDetails) => ({
+            ...prevDetails,
+            [name]: value,
+        }));
+    };
+
+    const handleSave = async () => {
+        // Client-side validation
+        if (
+            !parentDetails.full_name ||
+            !parentDetails.contact ||
+            !parentDetails.email ||
+            !parentDetails.relationship ||
+            !parentDetails.password ||
+            !parentDetails.child_name ||
+            !parentDetails.child_class ||
+            !parentDetails.child_section ||
+            !parentDetails.address ||
+            !parentDetails.role ||
+            !parentDetails.student_id
+        ) {
+            alert("Please fill in all required fields.");
+            return;
+        }
+
+        // Safely trim whitespace from input values.  Use optional chaining.
+        const trimmedParentDetails = {
+            ...parentDetails,
+            full_name: parentDetails.full_name?.trim() || "",
+            contact: parentDetails.contact?.trim() || "",
+            email: parentDetails.email?.trim() || "",
+            relationship: parentDetails.relationship?.trim() || "",
+            password: parentDetails.password?.trim() || "",
+            child_name: parentDetails.child_name?.trim() || "",
+            child_class: parentDetails.child_class?.trim() || "",
+            child_section: parentDetails.child_section?.trim() || "",
+            address: parentDetails.address?.trim() || "",
+            role: parentDetails.role?.trim() || "",
+            student_id: String(parentDetails.student_id)?.trim() || "", // Convert to string first!
+        };
+
+        try {
+            console.log("Sending updated data:", trimmedParentDetails);
+            const dataToUpdate = { ...trimmedParentDetails, parent_id: userId };
+
+            if (JSON.stringify(parentDetails) !== JSON.stringify(originalDetails)) {
+                console.log("Data being sent:", dataToUpdate); // Crucial logging
+
+                console.log("Data to be send:", dataToUpdate)
+                const response = await axios.put(
+                    "http://localhost:5000/api/parent/profile",
+                    dataToUpdate
+                );
+
+                console.log("Response from server:", response); // Check the full response
+
+                if (response.status === 200) {
+                    console.log("Profile update successful!  Setting showPopup to true."); // Add this log
+
+                    setIsProfileUpdated(true); // Ensure this is set as well
+                    setShowPopup(true);
+
+                    const profileResponse = await axios.get(
+                        `http://localhost:5000/api/parent/profileById/${userId}` // Corrected template literal
+                    );
+
+                    if (profileResponse.status === 200 && profileResponse.data) {
+                        setParentDetails(profileResponse.data);
+                        setOriginalDetails(profileResponse.data);
+                    } else {
+                        console.warn("Failed to refresh profile after update");
+                    }
+
+                    onProfileUpdated(parentDetails);
+                    setIsEditing(false);
+                } else {
+                    console.error("Update failed with status:", response.status, response.data);
+                    setProfileUpdateFail(true);
+                    setShowPopup(false); //  Hide success popup if it was showing.
+                    setTimeout(() => {
+                        setProfileUpdateFail(false);
+                    }, 3000);
+                }
+            } else {
+                setIsEditing(false);
+                onClose();
+            }
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+            setProfileUpdateFail(true);
+            setShowPopup(false); //  Hide success popup if it was showing.
+            setTimeout(() => {
+                setProfileUpdateFail(false);
+            }, 3000);
+        }
+    };
+
+    const handleCancel = () => {
+        setIsEditing(false);
+        setParentDetails(originalDetails);
+        onClose();
+    };
+
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleContinue = () => {
+        setShowPopup(false);
+        onClose();
+    };
+
+    // ... (rest of the modal styling)
+    const modalStyle = {
+        position: "fixed",
+        top: "0%",
+        left: "50%",
+        transform: "translate(-50%, 0)",
+        backgroundColor: "white",
+        padding: "15px",
+        borderRadius: "8px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        zIndex: 9999,
+        minWidth: "280px",
+        maxWidth: "600px",
+        display: "flex",
+        flexDirection: "column",
+    };
+
+    const modalContentStyle = {
+        maxHeight: "80vh",
+        overflowY: "auto",
+        paddingBottom: "15px",
+    };
+
+    const popupOverlayStyle = {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        zIndex: 10000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+    };
+
+    const popupStyle = {
+        backgroundColor: "white",
+        padding: "20px",
+        borderRadius: "8px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        minWidth: "400px",
+        maxWidth: "90%",
+        textAlign: "center",
+        fontSize: "1rem",
+    };
+
+    const swalIconStyle = {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: "15px",
+    };
+
+    const swalIconCircleStyle = {
+        width: "80px",
+        height: "80px",
+        borderRadius: "50%",
+        backgroundColor: "#e8f5e9",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: "10px",
+        marginBottom: "5px",
+    };
+
+    const swalTitleStyle = {
+        fontSize: "2rem",
+        fontWeight: "bold",
+        marginBottom: "10px",
+    };
+
+    const swalTextStyle = {
+        fontSize: "1.2rem",
+        marginBottom: "20px",
+    };
+
+    const inputStyle = {
+        border: "1px solid #e0e0e0",
+        padding: "8px",
+        borderRadius: "4px",
+        marginBottom: "8px",
+        width: "100%",
+        outline: "none",
+        boxSizing: "border-box",
+        fontSize: "0.9rem",
+        display: "inline-block",
+    };
+
+    const labelStyle = {
+        display: "inline-block",
+        marginBottom: "5px",
+        fontWeight: "bold",
+        fontSize: "1rem",
+        maxWidth: "120px",
+        overflowWrap: "break-word",
+    };
+
+    const buttonStyle = {
+        backgroundColor: "rgb(75, 73, 172)",
+        color: "white",
+        padding: "6px 12px",
+        fontSize: "0.8rem",
+        borderRadius: "50px",
+        border: "none",
+        cursor: "pointer",
+        fontWeight: "normal",
+        marginRight: "6px",
+    };
+
+    return (
+        <div>
+            {isOpen && (
+                <>
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            backgroundColor: "rgba(0, 0, 0, 0.5)",
+                            zIndex: 9998,
+                        }}
+                        onClick={onClose}
+                    />
+                    <div style={modalStyle}>
+                        <div style={{ textAlign: "center" }}>
+                            <i
+                                className="fa fa-user-circle"
+                                style={{ fontSize: "50px", color: "#007bff" }}
+                            ></i>
+                            <h3 style={{ marginTop: "10px" }}>Profile Details</h3>
+                        </div>
+                        {isLoading ? (
+                            <div style={{ textAlign: "center", fontSize: "1.2rem" }}>
+                                Loading...
+                            </div>
+                        ) : (
+                            <div style={modalContentStyle}>
+                                {/* Parent Details section */}
+                                <div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Full Name:</label>
+                                        <input
+                                            type="text"
+                                            name="full_name"
+                                            className="form-control"
+                                            value={parentDetails.full_name}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Role:</label>
+                                        <input
+                                            type="text"
+                                            name="role"
+                                            className="form-control"
+                                            value={parentDetails.role}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Password:</label>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            className="form-control"
+                                            value={parentDetails.password}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Email:</label>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            className="form-control"
+                                            value={parentDetails.email}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Phone:</label>
+                                        <input
+                                            type="tel"
+                                            name="contact" // Corrected name
+                                            className="form-control"
+                                            value={parentDetails.contact} // Corrected this line
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Relationship:</label>
+                                        <input
+                                            type="text"
+                                            name="relationship"
+                                            className="form-control"
+                                            value={parentDetails.relationship}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                </div>
+                                {/* Child Details section */}
+                                <div style={{ marginTop: "15px" }}>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Child Name:</label>
+                                        <input
+                                            type="text"
+                                            name="child_name"
+                                            className="form-control"
+                                            value={parentDetails.child_name}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Child Class:</label>
+                                        <input
+                                            type="text"
+                                            name="child_class"
+                                            className="form-control"
+                                            value={parentDetails.child_class}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Child Section:</label>
+                                        <input
+                                            type="text"
+                                            name="child_section"
+                                            className="form-control"
+                                            value={parentDetails.child_section}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Address:</label>
+                                        <input
+                                            type="text"
+                                            name="address"
+                                            className="form-control"
+                                            value={parentDetails.address}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label style={labelStyle}>Student ID:</label>
+                                        <input
+                                            type="text"
+                                            name="student_id"
+                                            className="form-control"
+                                            value={parentDetails.student_id}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            style={inputStyle}
+                                        />
+                                    </div>
+                                    {/* Buttons Moved inside Child Section */}
+                                    <div style={{ textAlign: "center", marginTop: "10px" }}>
+                                        {isEditing ? (
+                                            <>
+                                                <button style={buttonStyle} onClick={handleSave}>
+                                                    Save
+                                                </button>
+                                                <button style={buttonStyle} onClick={handleCancel}>
+                                                    Cancel
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <div>
+                                                <button style={buttonStyle} onClick={handleEdit}>
+                                                    Edit
+                                                </button>
+                                                <button style={buttonStyle} onClick={handleCancel}>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {showPopup && (
+                            <div style={popupOverlayStyle}>
+                                <div style={popupStyle}>
+                                    <div style={swalIconStyle}>
+                                        <div style={swalIconCircleStyle}>
+                                            <i
+                                                className="fa fa-check"
+                                                style={{ fontSize: "3em", color: "#4caf50" }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div style={swalTitleStyle}>Successful!</div>
+                                    <div style={swalTextStyle}>
+                                        Parent profile updated successfully!
+                                    </div>
+                                    <button onClick={handleContinue} style={buttonStyle}>
+                                        Continue
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        {isProfileUpdateFail && (
+                            <div
+                                style={{
+                                    position: "fixed",
+                                    top: "20px",
+                                    left: "50%",
+                                    transform: "translateX(-50%)",
+                                    backgroundColor: "red",
+                                    color: "white",
+                                    padding: "10px 20px",
+                                    borderRadius: "5px",
+                                    zIndex: 10000,
+                                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                                }}
+                            >
+                                Failed to update parent profile. Please try again!
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
+export default ParentProfileModal;

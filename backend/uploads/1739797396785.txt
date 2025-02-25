@@ -1,0 +1,280 @@
+/* General Reset */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f5f7ff;
+  box-sizing: border-box;
+}
+
+.admin-app-container {
+  padding-top: 56px;
+}
+
+/* Navbar */
+.admin-navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1050;
+  background-color: #ffffff;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.admin-navbar-brand img {
+  width: 40px;
+}
+
+.d-lg-none {
+  margin-right: 10px;
+}
+
+.btn-light {
+  background-color: transparent;
+}
+
+.btn-light:hover {
+  background-color: transparent;
+  border: none;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  position: fixed;
+  top: 56px;
+  left: 0;
+  width: 250px;
+  height: calc(100% - 56px);
+  background-color: white;
+  color: #343a40;
+  transition: all 0.3s ease;
+  z-index: 1040;
+  overflow-y: auto;
+}
+
+.admin-sidebar ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.admin-sidebar ul li {
+  padding: 15px;
+  display: flex;
+  transition: all 0.3s ease;
+}
+
+.admin-sidebar ul li a {
+  color: #6c757d;
+  text-decoration: none;
+  display: flex;
+  align-items: left;
+  width: 100%;
+  margin-top: 0px;
+  margin-bottom: -10px;
+  border-radius: 10px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  justify-content: left;
+  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+  margin-right: 60px;
+  padding-left: 25px;
+}
+
+.admin-sidebar ul li a:hover,
+.admin-sidebar ul li a.active {
+  background-color: #4B49AC;
+  width: 100%;
+  color: white;
+  border-radius: 10px;
+  padding-left: 25px;
+  padding-right: -30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+
+}
+
+/* Active link styles */
+.admin-sidebar a.active {
+  background-color: #4B49AC;
+  color: white;
+  border-radius: 10px;
+  padding-left: 10px;
+  padding-right: 30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  width: 100% ;
+}
+.admin-sidebar ul li i {
+  margin-right: 10px;
+  color: #6c757d; /* Consistent text color */
+  transition: color 0.3s ease; /* Added transition for icon color */
+  font-weight: bold;  /* Correct CSS for bold text */
+  transform: scale(1.2); /* Scales up the icon */
+  
+}
+
+
+.admin-sidebar ul li a:hover i,  /* Hover state for the icon */
+.admin-sidebar ul li a.active i { /*Active state for the icon */
+    color: white;  /* Set icon color to white on hover and active */
+}
+
+/* Ensure text also turns white on hover/active */
+.admin-sidebar ul li a:hover,
+.admin-sidebar ul li a.active {
+    color: white; /* Keep the text white on hover/active */
+}
+
+
+.admin-sidebar ul li span {
+  white-space: nowrap;
+  transition: opacity 0.3s ease;
+  color: #6c757d; /* Consistent text color */
+}
+
+
+.admin-sidebar ul li a:hover span,
+.admin-sidebar ul li a.active span {
+  color: white; /* Text white on hover and active */
+}
+
+.admin-sidebar.collapsed {
+  width: 80px;
+}
+
+.admin-sidebar.collapsed ul li span {
+  display: none;
+}
+
+.admin-sidebar.mobile-open {
+  left: 0;
+  width: 250px;
+  z-index: 1045;
+}
+
+/* Custom Tooltip Styles */
+.custom-tooltip .tooltip-inner {
+  background-color: #4B49AC;
+  color: white;
+}
+
+.custom-tooltip .tooltip-arrow {
+  border-top-color: #4B49AC;
+}
+
+/* Content Area */
+.admin-content {
+  margin-left: 0;
+  padding: 20px;
+  transition: margin-left 0.3s ease;
+}
+
+.admin-content.expanded {
+  margin-left: 80px;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  position: fixed;
+  top: 56px;
+  left: 70vw;
+  z-index: 1050;
+  display: none;
+  float: left;
+  min-width: 260px;
+  padding: .5rem 0;
+  margin: 0;
+  font-size: 1rem;
+  color: #212529;
+  text-align: left;
+  list-style: none;
+  background-color: #fff;
+  border-radius: .25rem;
+}
+
+.dropdown img {
+  margin-right: 0;
+}
+
+.dropdown-menu.show {
+  display: block;
+}
+
+/* Large Screens (≥992px) */
+@media (min-width: 992px) {
+  .admin-sidebar {
+    top: 56px;
+    left: 0;
+    height: calc(100% - 56px);
+    width: 250px;
+  }
+
+  .admin-content {
+    margin-left: 250px;
+  }
+
+  .admin-content.expanded {
+    margin-left: 80px;
+  }
+}
+
+/* Small Screens (<992px) */
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    left: -250px;
+    top: 56px;
+    height: calc(100% - 56px);
+    width: 250px;
+  }
+
+  .admin-sidebar.mobile-open {
+    left: 0;
+  }
+
+  .admin-content {
+    margin-left: 0;
+  }
+
+  .navbar-brand2 {
+    margin-left: 10px;
+  }
+
+  .dropdown-menu {
+    left: 20vw;
+    min-width: 250px;
+    right: auto;
+  }
+}
+
+/* Scrollbar Styles */
+.admin-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: transparent;
+}
+
+/* Utility Classes */
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.rounded-circle {
+  border-radius: 50%;
+}
+
+/* Navbar Profile Image */
+.admin-navbar img {
+  border-radius: 50%;
+}
+
+.admin-sidebar:hover::-webkit-scrollbar-thumb {
+  background-color: #a8a8a8;
+}

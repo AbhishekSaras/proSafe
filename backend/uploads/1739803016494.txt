@@ -1,0 +1,362 @@
+import { useState, useEffect } from "react";
+import PropTypes from "prop-types";
+import axios from "axios";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "../../../buttons.css";
+
+const Assignments = ({ isSideBar }) => {
+    const [assignments, setAssignments] = useState([]);
+    const [search, setSearch] = useState("");
+    const [entriesPerPage, setEntriesPerPage] = useState(5);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedChild, setSelectedChild] = useState(null);
+    const [children, setChildren] = useState([]);
+    const [showAssignments, setShowAssignments] = useState(false);
+    const [selectedClass, setSelectedClass] = useState("");  // New state for class
+    const [selectedSection, setSelectedSection] = useState(""); // New state for section
+
+
+    const parents_id = localStorage.getItem('userData');
+    const p_id = parents_id ? JSON.parse(parents_id) : null;
+    const parentId = p_id?.id;
+
+    useEffect(() => {
+        // Fetch children data
+        const fetchChildren = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/student", {
+                    params: { parentId }
+                });
+                const onlyChildren = response.data.filter(
+                    (student) => student.role === "student"
+                );
+                setChildren(onlyChildren);
+            } catch (error) {
+                console.error("Error fetching children:", error);
+            }
+        };
+
+        fetchChildren();
+    }, []);
+
+    // useEffect(() => {
+    //     const fetchAssignments = async () => {
+    //         if (selectedChild) {
+    //             try {
+    //                 const response = await axios.get(
+    //                     `http://localhost:5000/assignments/${selectedChild}`
+    //                 );
+    //                 setAssignments(response.data);
+    //                 setShowAssignments(true);
+    //             } catch (error) {
+    //                 console.error("Error fetching assignments:", error);
+    //                 setAssignments([]);
+    //             }
+    //         }
+    //     };
+
+    //     if (showAssignments && selectedChild) {
+    //         fetchAssignments();
+    //     }
+    // }, [selectedChild, showAssignments]);
+
+    useEffect(() => {
+        const fetchAssignments = async () => {
+            if (selectedClass && selectedSection) {
+                try {
+                    const response = await axios.get(
+                        `http://localhost:5000/assignments?class=${selectedClass}§ion=${selectedSection}`
+                    );
+                    setAssignments(response.data);
+                    setShowAssignments(true);
+                } catch (error) {
+                    console.error("Error fetching assignments:", error);
+                    setAssignments([]);
+                }
+            }
+        };
+
+        if (showAssignments && selectedClass && selectedSection) {
+            fetchAssignments();
+        }
+    }, [selectedClass, selectedSection, showAssignments]);
+
+
+    const handleChildChange = (e) => {
+        setSelectedChild(e.target.value);
+        // setAssignments([]); // Clear assignments when a new child is selected
+        // setShowAssignments(false); // Hide assignments until submit
+        // setCurrentPage(1); // Reset to first page on child change
+        const selectedChildData = children.find(child => child.student_id === parseInt(e.target.value));
+
+        if (selectedChildData) {
+            setSelectedClass(selectedChildData.class);
+            setSelectedSection(selectedChildData.section);
+        } else {
+            setSelectedClass("");
+            setSelectedSection("");
+        }
+    };
+
+    const handleDownload = (fileUrl) => {
+        const link = document.createElement("a");
+        link.href = fileUrl;
+        link.download = fileUrl.split("/").pop();
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setShowAssignments(true);
+        setCurrentPage(1); // Reset to first page on submit
+    };
+
+    // Search filtering logic
+    const filteredAssignments = assignments.filter((assignment) =>
+        Object.values(assignment).some((value) =>
+            value.toString().toLowerCase().includes(search.toLowerCase())
+        )
+    );
+
+    const totalPages = Math.ceil(filteredAssignments.length / entriesPerPage);
+    const paginatedAssignments = filteredAssignments.slice(
+        (currentPage - 1) * entriesPerPage,
+        currentPage * entriesPerPage
+    );
+
+    return (
+        <div className="container-fluid my-4">
+            <div
+                className={
+                    isSideBar
+                        ? "col-12 col-md-12 offset-lg-3 p-3"
+                        : "col-12 col-md-12 offset-lg-4 p-3"
+                }
+            >
+                <div className="col-12 col-md-6">
+                    <div className="card p-4 no-hover-card justify-content-center align-items-center">
+                        <h4
+                            style={{
+                                color: "rgb(75, 72, 172)", // Text color
+                                fontSize: "24px",          // Font size
+                                fontWeight: "bold",        // Font weight
+                                textAlign: "center",       // Center alignment
+                                margin: "20px 0",          // Vertical margin
+                                fontFamily: "'Arial', sans-serif", // Font family
+                            }}
+                        >Select Your Child Assignment</h4>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-3">
+                                <label htmlFor="childName" className="form-label">
+                                    Child Name:
+                                </label>
+                                <select
+                                    className="form-select"
+                                    id="childName"
+                                    value={selectedChild || ""}
+                                    onChange={handleChildChange}
+                                    required
+                                    style={{ width: "250px" }}
+                                >
+                                    <option value="" style={{ whiteSpace: "nowrap" }}>
+                                        Choose a child
+                                    </option>
+                                    {children.map((child) => (
+                                        <option key={child.student_id} value={child.student_id}>
+                                            {child.full_name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="text-center">
+                                <button type="submit" className="btn btn-primary">
+                                    Submit
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            {/* Card for showing assignments based on selected child */}
+            {showAssignments && selectedClass && selectedSection && (
+                <div
+                    className={
+                        isSideBar
+                            ? "col-12 col-md-12 offset-lg-1 p-3"
+                            : "col-12 col-md-12 offset-lg-3 p-3"
+                    }
+                >
+                    <div className={isSideBar ? "col-12 col-md-10" : "col-12 col-md-8"}>
+                        <div className="card p-4 no-hover-card">
+                            <h4>{selectedChild} Assignments</h4>
+
+                            {/* Search and entries per page control */}
+                            <div className="row mb-3">
+                                <div className="col-md-6">
+                                    <label>
+                                        Show{" "}
+                                        <select
+                                            className="form-select form-select-sm"
+                                            value={entriesPerPage}
+                                            onChange={(e) => {
+                                                setEntriesPerPage(Number(e.target.value));
+                                                setCurrentPage(1);
+                                            }}
+                                        >
+                                            <option value={5}>5</option>
+                                            <option value={10}>10</option>
+                                            <option value={15}>15</option>
+                                            <option value={filteredAssignments.length}>All</option>
+                                        </select>{" "}
+                                        entries
+                                    </label>
+                                </div>
+                                <div className="col-md-6 text-end">
+                                    <input
+                                        type="search"
+                                        className="form-control"
+                                        placeholder="Search"
+                                        value={search}
+                                        onChange={(e) => {
+                                            setSearch(e.target.value);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Table for assignments */}
+                            <div className="table-responsive">
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Subject</th>
+                                            <th>Assignment Name</th>
+                                            <th>Teacher Name</th>
+                                            <th>Class</th>
+                                            <th>Section</th>
+                                            <th>Date Given</th>
+                                            <th>Due Date</th>
+                                            <th>Source File</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {paginatedAssignments.map((assignment) => (
+                                            <tr key={assignment.assignment_id}>
+                                                <td>{assignment.subject}</td>
+                                                <td>{assignment.title}</td>
+                                                <td>{assignment.teacher_name}</td>
+                                                <td>{assignment.class}</td>
+                                                <td>{assignment.section}</td>
+                                                <td>{new Date(assignment.date).toLocaleDateString()}</td>
+                                                <td>{new Date(assignment.due_date).toLocaleDateString()}</td>
+                                                <td>
+                                                    {assignment.source_file ? (
+                                                        <button
+                                                            className="rounded-pill submitbtn" onClick={() => handleDownload(assignment.source_file)}
+                                                        >
+                                                            Download
+                                                        </button>
+                                                    ) : (
+                                                        "N/A"
+                                                    )}
+                                                </td>
+
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Unified Pagination Button */}
+                            <div className="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    Showing{" "}
+                                    {Math.min(
+                                        (currentPage - 1) * entriesPerPage + 1,
+                                        filteredAssignments.length
+                                    )}{" "}
+                                    to{" "}
+                                    {Math.min(currentPage * entriesPerPage, filteredAssignments.length)}{" "}
+                                    of {filteredAssignments.length} entries
+                                </div>
+                                <div className="d-flex align-items-center">
+                                    <div className="btn-group" style={{ borderRadius: '5px', overflow: 'hidden' }}>
+                                        <button
+                                            className={`btn btn-secondary ${currentPage === 1 ? "disabled" : ""}`}
+                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="btn btn-secondary" style={{ backgroundColor: '#4B48AC', color: 'white', pointerEvents: 'none' }}>
+                                            {currentPage}
+                                        </span>
+                                        <button
+                                            className={`btn btn-secondary ${currentPage === totalPages ? "disabled" : ""}`}
+                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+Assignments.propTypes = {
+    isSideBar: PropTypes.bool.isRequired,
+};
+
+export default Assignments;
+
+
+
+
+
+
+ app.get('/assignments', async (req, res) => {
+     const { class: classValue, section } = req.query; // Use req.query to get parameters
+
+     if (!classValue || !section) {
+         return res.status(400).json({ message: 'Class and section are required' });
+     }
+
+     try {
+         const result = await db.query(
+             'SELECT * FROM add_assignment_std WHERE class = $1 AND section = $2',
+             [classValue, section]
+         );
+         if (result.rows.length === 0) {
+             return res.status(404).json({ message: 'Assignments not found for this class and section' });
+         }
+         res.json(result.rows);
+     } catch (error) {
+         console.error('Error fetching assignments:', error);
+         res.status(500).json({ message: 'Error fetching assignments' });
+     }
+ });
+
+ app.get('/student', async (req, res) => {
+     const parentId = req.query.parentId;  // Access parentId from query parameters
+     console.log("🚀 ~ file: index.js:96 ~ app.get ~ parentId:", parentId)
+     try {
+         const allStudents = await db.query('SELECT * FROM student_register where parent_id = $1 AND role = $2', [parentId, 'student']);
+         res.json(allStudents.rows);
+     } catch (error) {
+         console.error('Error fetching all students:', error);
+         res.status(500).json({ message: 'Error fetching all students' });
+     }
+ });
+
+ 

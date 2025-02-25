@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react';
+import { Table, Button, Modal, Form, Alert, Nav } from 'react-bootstrap';
+import Swal from 'sweetalert2';
+import axios from 'axios';
+import FeeStructure from './FeeStructure';
+
+const Fees = () => {
+    const [students, setStudents] = useState([]);
+    const [feeStructure, setFeeStructure] = useState([]);
+    const [showModal, setShowModal] = useState(false);
+    const [currentStudent, setCurrentStudent] = useState(null);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentMode, setPaymentMode] = useState('Online');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState(''); // Added error message state
+    const [activeTab, setActiveTab] = useState('paymentHistory');
+
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/student4');
+                setStudents(response.data);
+            } catch (error) {
+                console.error("Error fetching students:", error);
+                setErrorMessage('Failed to fetch student data.'); // Update error message
+            }
+        };
+
+        const fetchFeeStructure = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/feestructure');
+                setFeeStructure(response.data);
+            } catch (error) {
+                console.error("Error fetching fee structure:", error);
+                setErrorMessage('Failed to fetch fee structure.'); // Update error message
+            }
+        };
+
+        fetchStudents();
+        fetchFeeStructure();
+    }, []);
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setPaymentAmount('');
+        setPaymentMode('Online');
+        setErrorMessage(''); // Clear any previous error messages
+    };
+
+    const handleShowModal = (student) => {
+        setCurrentStudent(student);
+        setShowModal(true);
+        setErrorMessage(''); // Clear any previous error messages
+    };
+
+    const handlePayment = async (e) => {
+        e.preventDefault();
+        setErrorMessage(''); // Clear previous error message
+        const amount = parseFloat(paymentAmount);
+
+        if (amount > 0 && currentStudent) {
+            try {
+                const newPaidFee = currentStudent.paid_fee + amount;
+                const newDueFee = currentStudent.total_fee - newPaidFee;
+                const finalDueFee = Math.max(0, newDueFee);
+
+                const paymentData = {
+                    studentId: currentStudent.student_id,
+                    paidFee: amount,
+                    dueFee: finalDueFee,
+                    paymentMode: paymentMode,
+                };
+
+                //  *** IMPORTANT:  Handle potential errors from the server.  ***
+                const response = await axios.post('http://localhost:5000/payments', paymentData);
+
+                if (response.status === 200) {
+                    // Payment successful
+                    setStudents(prevStudents =>
+                        prevStudents.map(student => {
+                            if (student.student_id === currentStudent.student_id) {
+                                return {
+                                    ...student,
+                                    paid_fee: newPaidFee,
+                                    due_fee: finalDueFee,
+                                    status: finalDueFee === 0 ? 'Paid' : 'Pending',
+                                    payment_mode: paymentMode,
+                                    payment_date: new Date().toISOString(),
+                                };
+                            }
+                            return student;
+                        })
+                    );
+
+                    handleCloseModal();
+                    Swal.fire('Success!', 'Payment processed successfully.', 'success');
+                    setSuccessMessage('Payment successful!');
+                    setTimeout(() => setSuccessMessage(''), 3000);
+
+                } else {
+                    // Server returned an error status code (e.g., 400, 500)
+                    console.error("Payment failed:", response.status, response.data);
+                    setErrorMessage(`Payment failed: Server returned status ${response.status}`);
+                    Swal.fire('Error!', `Payment failed: Server returned status ${response.status}`, 'error');
+
+                }
+
+            } catch (error) {
+                // Catch network errors, or errors in the try block
+                console.error("Error processing payment:", error);
+
+                if (error.response) {
+                    // The request was made and the server responded with a status code
+                    // that falls out of the range of 2xx
+                    setErrorMessage(`Payment failed: ${error.response.data.error || 'An unexpected error occurred'}`);
+                    Swal.fire('Error!', `Payment failed: ${error.response.data.error || 'An unexpected error occurred'}`, 'error');
+                } else if (error.request) {
+                    // The request was made but no response was received
+                    setErrorMessage("Payment failed: No response from server.  Is the server running?");
+                    Swal.fire('Error!', "Payment failed: No response from server. Is the server running?", 'error');
+                } else {
+                    // Something happened in setting up the request that triggered an Error
+                    setErrorMessage('Payment failed: An unexpected error occurred.');
+                    Swal.fire('Error!', 'Payment failed: An unexpected error occurred.', 'error');
+                }
+            }
+        }
+    };
+
+    const filteredStudents = students.filter(student =>
+        student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.student_id.toString().includes(searchTerm) ||
+        student.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.total_fee.toString().includes(searchTerm) ||
+        student.paid_fee.toString().includes(searchTerm) ||
+        student.due_fee.toString().includes(searchTerm) ||
+        student.status.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const totalEntries = filteredStudents.length;
+    const totalPages = Math.ceil(totalEntries / itemsPerPage);
+    const displayedStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const handleDownloadInvoice = (student) => {
+        Swal.fire({
+            title: 'Download Invoice',
+            text: 'This feature is under development.',
+            icon: 'info',
+            confirmButtonText: 'OK'
+        });
+    };
+
+    return (
+        <div className="container mt-5">
+            <h2 style={{ color: "rgb(75, 72, 172)", fontSize: "24px", fontWeight: "bold", textAlign: "center", margin: "20px 0", fontFamily: "'Arial', sans-serif" }}>
+                Welcome To Fees Management System
+            </h2>
+            {successMessage && <Alert variant="success">{successMessage}</Alert>}
+            {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}  {/* Display error message */}
+
+            <Nav variant="tabs" defaultActiveKey="paymentHistory" className="mb-3">
+                <Nav.Item>
+                    <Nav.Link eventKey="paymentHistory" onClick={() => setActiveTab('paymentHistory')} active={activeTab === 'paymentHistory'}>
+                        Payment History
+                    </Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                    <Nav.Link eventKey="feeStructure" onClick={() => setActiveTab('feeStructure')} active={activeTab === 'feeStructure'}>
+                        Fee Structure
+                    </Nav.Link>
+                </Nav.Item>
+            </Nav>
+
+            {activeTab === 'paymentHistory' && (
+                <div className="dataTables_wrapper dt-bootstrap5 no-footer" style={{ overflowY: 'auto', maxHeight: '400px', backgroundColor: 'white', borderRadius: '15px', padding: '20px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)' }}>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div className="d-flex align-items-center">
+                            <label htmlFor="itemsPerPage" className="me-2">Show</label>
+                            <select id="itemsPerPage" className="form-select" style={{ width: '65px' }} value={itemsPerPage} onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={15}>15</option>
+                                <option value={20}>20</option>
+                            </select>
+                            <label htmlFor="itemsPerPage" className="ms-2">entries</label>
+                        </div>
+
+                        <input type="search" className="form-control" style={{ width: window.innerWidth <= 480 ? '120px' : window.innerWidth <= 768 ? '200px' : '300px' }} placeholder="Search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                    </div>
+
+                    <table id="order-listing" className="table dataTable no-footer" aria-describedby="order-listing_info" style={{ backgroundColor: 'white', borderRadius: '15px', overflow: 'hidden' }}>
+                        <thead>
+                            <tr>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Section</th>
+                                <th>Total Fee</th>
+                                <th>Paid Fee</th>
+                                <th>Due Fee</th>
+                                <th>Payment Mode</th>
+                                <th>Payment Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {displayedStudents.map(student => (
+                                <tr key={student.student_id}>
+                                    <td>{student.student_id}</td>
+                                    <td>{student.full_name}</td>
+                                    <td>{student.class}</td>
+                                    <td>{student.section}</td>
+                                    <td>{student.total_fee}</td>
+                                    <td>{student.paid_fee}</td>
+                                    <td>{student.due_fee}</td>
+                                    <td>{student.payment_mode}</td>
+                                    <td>{student.payment_date ? new Date(student.payment_date).toLocaleString() : 'N/A'}</td>
+                                    <td>
+                                        <span style={{ border: student.status === 'Paid' ? '1px solid green' : '1px solid red', color: student.status === 'Paid' ? 'green' : 'red', borderRadius: '15px', padding: '8px', display: 'inline-block' }}>
+                                            {student.status}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <Button size="sm" variant="outline-danger" onClick={() => handleShowModal(student)} disabled={student.due_fee === 0}>
+                                            {student.due_fee === 0 ? "Paid" : "Pay Due Fee"}
+                                        </Button>
+                                        <Button variant="outline-success" size="sm" onClick={() => handleDownloadInvoice(student)}>
+                                            Invoice
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {displayedStudents.length === 0 && (
+                                <tr>
+                                    <td colSpan="11" className="text-center">No students found for the selected criteria.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+
+                    <div className="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            Showing {currentPage * itemsPerPage - itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalEntries)} of {totalEntries} entries
+                        </div>
+
+                        <div className="btn-group">
+                            <button className={`btn btn-secondary ${currentPage === 1 ? "disabled" : ""}`} onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>Previous</button>
+                            <span className="btn btn-secondary" style={{ backgroundColor: '#4B48AC', color: 'white', pointerEvents: 'none' }}>{currentPage}</span>
+                            <button className={`btn btn-secondary ${currentPage === totalPages ? "disabled" : ""}`} onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'feeStructure' && (
+                <FeeStructure feeStructure={feeStructure} />
+            )}
+
+            <Modal show={showModal} onHide={handleCloseModal}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Pay Remaining Fee</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {currentStudent && (
+                        <div>
+                            <p><strong>Student ID:</strong> {currentStudent.student_id}</p>
+                            <p><strong>Full Name:</strong> {currentStudent.full_name}</p>
+                            <p><strong>Total Fee:</strong> {currentStudent.total_fee}</p>
+                            <p><strong>Remaining Fee:</strong> {currentStudent.due_fee}</p>
+                        </div>
+                    )}
+                    <Form onSubmit={handlePayment}>
+                        <Form.Group controlId="formPaymentAmount">
+                            <Form.Label>Amount to Pay</Form.Label>
+                            <Form.Control type="number" placeholder="Enter amount" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} required />
+                        </Form.Group>
+
+                        <Form.Group controlId="formPaymentMode">
+                            <Form.Label>Payment Mode</Form.Label>
+                            <Form.Control as="select" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value)}>
+                                <option value="Online">Online</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Card">Card</option>
+                            </Form.Control>
+                        </Form.Group>
+                        <Button variant="primary" type="submit">Submit Payment</Button>
+                    </Form>
+                </Modal.Body>
+            </Modal>
+        </div>
+    );
+};
+
+export default Fees;

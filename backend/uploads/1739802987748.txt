@@ -1,0 +1,34 @@
+// Route to GET assignments by class and section
+app.get('/assignments', async (req, res) => {
+    const { class: classValue, section } = req.query; // Corrected: Use req.query
+
+    if (!classValue || !section) {
+        return res.status(400).json({ message: 'Class and section are required as query parameters.' });
+    }
+
+    try {
+        // Sanitize the inputs to prevent SQL injection (VERY IMPORTANT!)
+        const sanitizedClass = classValue.trim(); // Remove leading/trailing spaces
+        const sanitizedSection = section.trim();
+
+        // Execute the SQL query with parameters
+        const query = `
+            SELECT *
+            FROM add_assignment_std
+            WHERE class = $1 AND section = $2
+        `;
+
+        const values = [sanitizedClass, sanitizedSection];
+
+        const result = await db.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No assignments found for the specified class and section.' });
+        }
+
+        res.status(200).json(result.rows); // Send a 200 OK with the assignments
+    } catch (error) {
+        console.error('Error fetching assignments:', error);
+        res.status(500).json({ message: 'Failed to fetch assignments from the database.' });
+    }
+});

@@ -1,0 +1,283 @@
+/* Sidebar Styling */
+.sidebar1 {
+  width: 230px;
+  background-color: white;
+  color: #6c757d;
+  height: 100vh;
+  transition: all 0.3s ease;
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  padding-top: 80px;
+  z-index: 100;
+  font-weight: 400; /* Added font-weight */
+  font-size: 16px; /* Added font-size */
+  font-family: 'Poppins', sans-serif; /* Added font-family (make sure to include Poppins in your HTML) */
+}
+
+/* Collapsed Sidebar */
+.sidebar1.collapsed {
+  width: 80px;
+  padding-top: 50px;
+}
+
+/* Main Content */
+.main-content1 {
+  transition: margin-left 0.3s ease;
+  margin-left: 250px;
+  padding: 20px;
+}
+
+/* When Sidebar is collapsed, adjust the main content */
+.sidebar1.collapsed + .main-content1 {
+  margin-left: 80px;
+}
+
+/* Nav List Styling */
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Nav Item Styling */
+.nav-item {
+  position: relative;
+  margin-bottom: 10px; /* Adds vertical space between items */
+}
+
+/* Nav Link Styling */
+.nav-item .nav-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px; /* Reduce padding */
+  text-decoration: none;
+  color: #6c757d;
+  font-size: 14px; /* Slightly smaller font */
+  transition: background-color 0.3s ease, color 0.3s ease, border-radius 0.3s ease,
+    transform 0.3s ease;
+  width: calc(100% - 20px); /* Reduce width slightly for a compact look */
+  overflow: hidden;
+  margin: 0 auto; /* Center the nav-link */
+  font-weight: 400;
+  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Hover Effect on Nav Links */
+.nav-item .nav-link:hover {
+  background-color: #4b49ac;
+  color: white;
+  border-radius: 10px;
+  padding-left: 10px;
+  padding-right: -30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+/* Active Effect on Nav Links */
+.nav-item .nav-link.active {
+  background-color: #4b49ac;
+  color: white;
+  border-radius: 10px;
+  padding-left: 10px;
+  padding-right: -30px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+ /* Tooltip Styling */
+.nav-item .tooltip {
+  visibility: hidden;
+  position: absolute;
+  background-color: #4b49ac;
+  color: white;
+  text-align: center;
+  height: 40px;
+  padding: 5px 10px;
+  font-size: 14px;
+  left: 100%;
+  top: 50%;
+  margin-left: -12px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out, border-radius 0.3s ease;
+  white-space: nowrap;
+  z-index: 10;
+  font-weight: 400;
+  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* Show tooltip on hover when sidebar is collapsed */
+.nav-item:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+  border-radius: 4px; /* Subtle rounded corners */
+}
+
+/* Text visibility in expanded state */
+.sidebar1 .nav-link span {
+  opacity: 1;
+  visibility: visible;
+  white-space: nowrap;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  margin-left: 10px;
+  display: inline-block;
+  font-weight: 400;
+  font-size: 16px;
+  font-family: 'Poppins', sans-serif;
+}
+.custom-hamburger {
+  margin-top: -15px; /* Adjust this value to move it up or down */
+}
+
+/* Collapsed state text handling */
+.sidebar1.collapsed .nav-link span {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  display: none;
+}
+
+/* Styling for icons */
+.nav-link svg {
+  font-size: 20px;
+  transition: font-size 0.3s ease;
+  min-width: 24px; /* Ensure icon maintains width */
+}
+
+/* Increase icon size in collapsed sidebar */
+.sidebar1.collapsed .nav-link svg {
+  font-size: 24px;
+}
+
+/* Sidebar open/close transitions */
+.sidebar1.open {
+  width: 250px;
+}
+
+/* Mobile View */
+@media (max-width: 768px) {
+  .sidebar1 {
+    transform: translateX(-100%);
+    width: 220px; /* Ensure enough space for text and icons */
+  }
+
+  .sidebar1.open {
+    transform: translateX(0);
+    width: 250px; /* Ensure sidebar width remains consistent */
+  }
+  .sidebar-toggle {
+    top: "-50px !important";
+  }
+  .main-content1 {
+    margin-left: 0px;
+  }
+  .teacherImage{
+    margin-top: -20px;
+  }
+  .imgprofile {
+    margin-top: -30px; /* Adjust this value to move it up or down */
+    margin-right: -60px;
+  }
+
+  .custom-hamburger {
+    margin-top: -50px; /* Adjust this value to move it up or down */
+    left: 60px;
+  }
+
+  .sidebar1.open ~ .main-content1 {
+    margin-left: 0;
+  }
+
+  /* Adjust text visibility for mobile */
+  .sidebar1.open .nav-link span {
+    display: inline-block;
+    opacity: 1;
+    visibility: visible;
+    margin-left: 10px;
+    white-space: nowrap;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .sidebar1.collapsed .nav-link span {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+}
+
+/* Desktop/Laptop View */
+@media (min-width: 769px) {
+  .sidebar1 {
+    transform: translateX(0);
+  }
+
+  .main-content1 {
+    margin-left: 250px;
+    transition: margin-left 0.3s ease;
+  }
+
+  .sidebar1.collapsed ~ .main-content1 {
+    margin-left: 80px;
+  }
+}
+
+
+import React from "react";
+import { NavLink } from "react-router-dom";
+import {
+  FaChalkboardTeacher,
+  FaClipboardList,
+  FaTable,
+  FaUsers,
+  FaComments,
+  FaBook,
+  FaCalendarAlt,
+  FaUserClock,
+  FaFileAlt,
+  
+} from "react-icons/fa";
+
+
+const NavigationMenu = ({ isSidebarOpen, isMobile }) => {
+  const routes = [
+    { path: "/teacher-portal/teacherdashboard", label: "Teacher Dashboard", icon: <FaChalkboardTeacher /> },
+    { path: "/teacher-portal/classoverview", label: "Classroom Overview", icon: <FaChalkboardTeacher /> },
+    { path: "/teacher-portal/assignment-tracker", label: "Assignment Tracker", icon: <FaClipboardList /> },
+    { path: "/teacher-portal/classtimetable", label: "Class Timetable", icon: <FaTable /> },
+    { path: "/teacher-portal/student-performance", label: "Student Performance", icon: <FaUsers /> },
+    { path: "/teacher-portal/events", label: "Events", icon: <FaCalendarAlt /> },
+    { path: "/teacher-portal/communication-panel", label: "Communication Panel", icon: <FaComments /> },
+    { path: "/teacher-portal/syllabus", label: "Syllabus", icon: <FaBook /> },
+    { path: "/teacher-portal/examtimetable", label: "Exam Timetable", icon: <FaCalendarAlt /> },
+    { path: "/teacher-portal/leave", label: "Leave", icon: <FaUserClock /> },
+     { path: "/teacher-portal/marksreport", label: "Marks Report", icon: <FaFileAlt /> },
+  ];
+
+  return (
+    <nav
+      className={`sidebar1 ${isMobile ? (isSidebarOpen ? "open" : "") : isSidebarOpen ? "" : "collapsed"}`}
+    >
+      <ul className="nav-list">
+        {routes.map(({ path, label, icon }) => (
+          <li key={path} className="nav-item">
+            <NavLink to={path} className="nav-link">
+              {icon}
+              {isMobile && !isSidebarOpen || <span>{label}</span>}
+            </NavLink>
+            {!isMobile && !isSidebarOpen && <span className="tooltip">{label}</span>}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+};
+
+export default NavigationMenu;
