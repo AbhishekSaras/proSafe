@@ -8,24 +8,6 @@ import dotenv from "dotenv";
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { log } from 'console';
-import mysql from 'mysql';
-// const mysql = require('mysql');
-
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root', // Change if your MySQL username is different
-  password: '', // Set your MySQL password
-  database: 'prosafe',
-  port: 3306, // Default MySQL port
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('Database connection error:', err);
-    return;
-  }
-  console.log('Connected to MySQL database');
-});
 
 // Define __dirname for ES modules
 dotenv.config();
@@ -81,17 +63,17 @@ const upload = multer({ storage });
 // const upload = multer({ storage });
 
 // PostgreSQL database connection
-// const db = new pg.Client({
-//   user: 'postgres',
-//   host: 'localhost',
-//   database: 'School_management_system_project',
-//   password: 'padma_postgres',
-//   port: 5432,
-// });
+const db = new pg.Client({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'School_management_system_project',
+  password: 'padma_postgres',
+  port: 5432,
+});
 
-// db.connect()
-//   .then(() => console.log('Connected to PostgreSQL database'))
-//   .catch(err => console.error('Database connection error:', err));
+db.connect()
+  .then(() => console.log('Connected to PostgreSQL database'))
+  .catch(err => console.error('Database connection error:', err));
 
 // Routes
 
@@ -130,7 +112,6 @@ const upload = multer({ storage });
       WHERE (email = $1 OR contact = $1) AND password = $2
     `;
     const result = await db.query(query, [username, password]);
-    console.log(result.rows.length); return false;
 
     if (result.rows.length > 0) {
       const user = result.rows[0];
